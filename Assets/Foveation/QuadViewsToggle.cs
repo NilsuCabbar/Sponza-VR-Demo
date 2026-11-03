@@ -52,8 +52,11 @@ namespace Foveation
 
         void Update()
         {
+            // Without a running headset the key switches the desktop simulation (QuadViewsSimulator) instead.
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard[m_ToggleKey].wasPressedThisFrame && !m_Restarting)
+            var xrRunning = XRGeneralSettings.Instance != null && XRGeneralSettings.Instance.Manager != null &&
+                XRGeneralSettings.Instance.Manager.isInitializationComplete;
+            if (keyboard != null && keyboard[m_ToggleKey].wasPressedThisFrame && !m_Restarting && xrRunning)
                 m_QuadViews = !m_QuadViews;
 
             if (m_QuadViews != m_Applied && !m_Restarting)

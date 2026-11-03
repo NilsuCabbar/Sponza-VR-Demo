@@ -1,0 +1,6 @@
+torch
+pyfvvdp
+lpips
+flip-evaluator
+imageio
+numpy

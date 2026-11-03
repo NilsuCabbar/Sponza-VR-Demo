@@ -133,11 +133,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8098169881513260187, guid: 852862c6e7176a64085d205831632a11, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 2456386301669728882, guid: 852862c6e7176a64085d205831632a11, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 3447742079981357586, guid: 852862c6e7176a64085d205831632a11, type: 3}
       propertyPath: m_LocalPosition.x
@@ -248,6 +248,79 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.84684634, y: 2, z: 0.48200333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &246227033
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 246227035}
+  - component: {fileID: 246227034}
+  m_Layer: 0
+  m_Name: Quad Views Simulator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &246227034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 246227033}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c262eb797af16b46a7d42f97ffab94e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Foveation.QuadViewsSimulator
+  m_Mode: 2
+  m_PeripheralMultiplier: 0.5
+  m_FocusMultiplier: 1
+  m_HorizontalFocusSection: 0.35
+  m_VerticalFocusSection: 0.35
+  m_VerticalFocusOffset: 0
+  m_HorizontalFixedSection: 0.5
+  m_VerticalFixedSection: 0.45
+  m_VerticalFixedOffset: 0
+  m_SmoothenFocusViewEdges: 0.2
+  m_SharpenFocusView: 0.7
+  m_ScreenSpaceAmbientOcclusion: 1
+  m_Renderer: {fileID: 11400000, guid: f288ae1f4751b564a96ac7587541f7a2, type: 2}
+  m_Gaze: {x: 0, y: 0}
+  m_GazeSpeed: 0.6
+  m_GazeFollowsMouse: 0
+  m_ShowRegion: 1
+  m_PeripheryTint: 0.12
+  m_ShowHelp: 1
+  m_CameraControls: 1
+  m_MoveSpeed: 2
+  m_LookSensitivity: 0.12
+  m_ToggleKey: 41
+  m_ModeKey: 27
+  m_RegionKey: 36
+  m_CenterKey: 17
+  m_HelpKey: 22
+  m_AmbientOcclusionKey: 29
+  m_Shader: {fileID: 4800000, guid: 8744de0b5434bf3468a03dca207ebe38, type: 3}
+--- !u!4 &246227035
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 246227033}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1074,6 +1147,325 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2044053908
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2044053910}
+  - component: {fileID: 2044053909}
+  m_Layer: 0
+  m_Name: Performance Overlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2044053909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044053908}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181965478af86fb47a3c0e78d75ca6ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Benchmark.PerformanceOverlay
+  m_ToggleKey: 94
+  m_RecordKey: 95
+  m_Visible: 1
+  m_Distance: 1.5
+  m_Offset: {x: -0.25, y: 0.1}
+  m_RefreshInterval: 0.25
+--- !u!4 &2044053910
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044053908}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2104658058
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2104658060}
+  - component: {fileID: 2104658061}
+  m_Layer: 0
+  m_Name: Quality Benchmark
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2104658060
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104658058}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2104658061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104658058}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58e134d5949e5db46bc54165df02505c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Benchmark.QualityBenchmark
+  m_RunKey: 16
+  m_RunOnStart: 0
+  m_Width: 1440
+  m_Height: 1600
+  m_FieldOfView: 93
+  m_WarmupFrames: 60
+  m_MeasureFrames: 240
+  m_SaveImages: 0
+  m_ReferenceScenario: 0
+  m_BaselineScenario: 1
+  m_MetricFocusSection: {x: 0.5, y: 0.45}
+  m_SeamWidth: 24
+  m_ExternalReferenceRun: 
+  m_Views:
+  - name: atrium
+    position: {x: -9.5, y: 1.7, z: 0.5}
+    eulerAngles: {x: 0, y: 90, z: 0}
+  - name: atrium_back
+    position: {x: 9.5, y: 1.7, z: 0.5}
+    eulerAngles: {x: 0, y: -90, z: 0}
+  - name: colonnade
+    position: {x: -9, y: 1.7, z: -4}
+    eulerAngles: {x: 0, y: 90, z: 0}
+  - name: upper_gallery
+    position: {x: -8, y: 6.3, z: 4}
+    eulerAngles: {x: 10, y: 100, z: 0}
+  - name: curtains_plants
+    position: {x: 2, y: 1.6, z: 1}
+    eulerAngles: {x: 5, y: 20, z: 0}
+  m_Scenarios:
+  - name: Reference (PC, 2x SSAA, MSAA 4x, 4K shadows)
+    pipeline: {fileID: 0}
+    renderScale: 2
+    msaa: 4
+    shadowResolution: 4096
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC (High)
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: Mobile (Low)
+    pipeline: {fileID: 11400000, guid: 5e6cbd92db86f4b18aec3ed561671858, type: 2}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + render scale 0.75
+    pipeline: {fileID: 0}
+    renderScale: 0.75
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + render scale 0.5
+    pipeline: {fileID: 0}
+    renderScale: 0.5
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + MSAA 4x
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 4
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + textures 1/2
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: 1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + textures 1/4
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: 2
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + shadow map 512
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 512
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + no realtime shadows
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: 0
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: PC + HDR off
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 2
+    quadViews: 0
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: Quad views (fixed 0.5 x 0.45, periphery 0.5)
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 1
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: Quad views (eye-tracked size 0.35 x 0.35)
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 1
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.35, y: 0.35}
+    focusEdgeSmoothing: 0.2
+  - name: Quad views, periphery 0.25
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 1
+    peripheralMultiplier: 0.25
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0.2
+  - name: Quad views, no edge smoothing
+    pipeline: {fileID: 0}
+    renderScale: 0
+    msaa: 0
+    shadowResolution: 0
+    shadowDistance: -1
+    textureMipLimit: -1
+    hdr: 0
+    quadViews: 1
+    peripheralMultiplier: 0.5
+    focusMultiplier: 1
+    focusSection: {x: 0.5, y: 0.45}
+    focusEdgeSmoothing: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1087,3 +1479,6 @@ SceneRoots:
   - {fileID: 66376082}
   - {fileID: 135059989}
   - {fileID: 1522781398}
+  - {fileID: 2104658060}
+  - {fileID: 2044053910}
+  - {fileID: 246227035}

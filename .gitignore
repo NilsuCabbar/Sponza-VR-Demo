@@ -112,3 +112,9 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Benchmark output (images and CSVs from Tools > Benchmark)
+/[Bb]enchmarkResults/
+
+# Python environment for Tools/metrics
+Tools/metrics/.venv/
