@@ -39,6 +39,9 @@ namespace Foveation
 
         static QuadViewsSimulator s_Running;
 
+        /// <summary>Whether this component currently allows SSAO (key O), for the performance overlay.</summary>
+        public static bool ambientOcclusionEnabled { get; private set; } = true;
+
         [SerializeField]
         QuadViewsSimulationMode m_Mode = QuadViewsSimulationMode.EyeTracked;
 
@@ -97,9 +100,9 @@ namespace Foveation
         float m_SharpenFocusView = 0.7f;
 
         [Header("Screen space effects")]
-        [Tooltip("Screen Space Ambient Occlusion while simulating. SSAO runs separately on each view, so the focus view gets " +
-            "its own AO: darker smudges near its border and a noise pattern that does not match the periphery. Real quad views " +
-            "render the focus view separately too. Turn off to compare.")]
+        [Tooltip("Screen Space Ambient Occlusion, on the desktop and in the headset. SSAO runs separately on each view, so the " +
+            "focus view gets its own AO: darker smudges near its border and a noise pattern that does not match the periphery. " +
+            "Real quad views render the focus view separately too. Turn off to compare. The renderer's own setting is restored on exit.")]
         [SerializeField]
         bool m_ScreenSpaceAmbientOcclusion = true;
 
@@ -208,12 +211,15 @@ namespace Foveation
         {
             StopSimulation();
             RestorePoseDriver();
+            RestoreRendererFeatures();
         }
 
         void Update()
         {
             var xrRunning = IsXRRunning();
             HandleKeys(xrRunning);
+            // Also with a headset, to compare the per-view AO of the real quad views.
+            ApplyAmbientOcclusion();
 
             if (xrRunning)
             {
@@ -450,7 +456,6 @@ namespace Foveation
                 Destroy(m_Material);
             Release(ref m_PeripheryTarget);
             Release(ref m_FocusTarget);
-            RestoreRendererFeatures();
 
             m_Camera = null;
             m_FocusCamera = null;
@@ -513,7 +518,6 @@ namespace Foveation
             m_FocusCamera.transform.localPosition = Vector3.zero;
             m_FocusCamera.transform.localRotation = Quaternion.identity;
 
-            ApplyAmbientOcclusion();
             m_Image.texture = m_PeripheryTarget;
             m_Material.SetTexture(k_FocusTex, m_FocusTarget);
             m_Material.SetVector(k_FocusRect, new Vector4((float)m_FocusRect.xMin / width, (float)m_FocusRect.yMin / height,
@@ -529,6 +533,7 @@ namespace Foveation
         // SSAO is a renderer feature shared by every camera using the renderer, so its state is remembered and restored.
         void ApplyAmbientOcclusion()
         {
+            ambientOcclusionEnabled = m_ScreenSpaceAmbientOcclusion;
             if (m_Renderer == null)
                 return;
             foreach (var feature in m_Renderer.rendererFeatures)

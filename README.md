@@ -290,10 +290,38 @@ SSIM odak / çevre / sınır ve FLIP sınır, sabit odak bölgesine (0.5 × 0.45
 3. [Quad-Views-Foveated](https://github.com/mbucchia/Quad-Views-Foveated) API katmanı kurulu.
 4. Unity Editor Direct3D 11 ile çalışıyor. Grafik API değiştikten sonra Unity'nin bir kez yeniden başlatılması gerekir.
 
+### Göz takibi kurulumu (diğer projede çalışan yol)
+Göz takibi Unity'de değil, VR bilgisayarının kendisinde kurulu iki parçayla çalışıyor. Bu kurulum [HTC-VIVE-Pro-Eye-Quad-View-](https://github.com/NilsuCabbar/HTC-VIVE-Pro-Eye-Quad-View-) projesinde yapıldı; aynı bilgisayarda kuruluysa bu projede ayrıca bir şey yapmak gerekmez. Unity tarafı iki projede aynı: Quad Views, Eye Gaze Interaction ve HTC Vive Controller feature'ları açık, render modu Multi-pass.
+
+**Sorun:** Vive Pro Eye'ın göz takibi katmanları göz verisini OpenXR'a `XR_EXT_eye_gaze_interaction` olarak veriyor, ama SteamVR üzerinden "destekleniyor" bayrağını (`supportsEyeGazeInteraction`) hiç `true` yapmıyor. Orijinal Quad-Views-Foveated bu bayrağa baktığı için göz takibini kullanmıyor ve odak ortada sabit kalıyor ([HTC forumundaki hata kaydı](https://forum.htc.com/topic/21585-bug-viveopenxrfacialtracking-does-not-set-supportseyegazeinteraction-to-true-through-steamvr)).
+
+**Çözüm:**
+1. **[OpenXR Layer VIVE SDK](https://dragondreams.ch/index.php/openxr-layer-vive-sdk/) (DragonDreams):** Göz verisini doğrudan VIVE SDK'dan alıp OpenXR'a veriyor; kurulunca HTC'nin `ViveOpenXRFacialTracking` katmanını kendisi kapatıyor. Sorun çıkarsa Windows'tan kaldırmak yeterli.
+2. **Yamalanmış Quad-Views-Foveated:** Diğer repodaki `Tools/QuadViewsFoveated-patched/XR_APILAYER_MBUCCHIA_quad_views_foveated.dll`, yönetici izniyle `C:\Program Files\OpenXR-Quad-Views-Foveated\` klasöründeki aynı adlı dosyanın yerine kopyalanır. Yama (`eye-gaze-flag.patch`) iki şey yapıyor:
+   - Bayrak `false` olsa bile uzantı verildiyse göz verisini kullanıyor.
+   - `settings.cfg` için `invert_eye_gaze_x=1` / `invert_eye_gaze_y=1` ayarlarını ekliyor. Odak bölgesi gözün tersine hareket ediyorsa bunları kullan.
+
+Quad-Views-Foveated yeniden kurulur ya da güncellenirse DLL orijinaliyle değişir; yamalı dosyayı tekrar kopyalamak gerekir.
+
+Ayrıca eski HTC katmanının iki kopyası birlikte açıkken Unity çöküyordu; eskisi registry'den kapatılmıştı (`HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Implicit` altında eski `ViveOpenXRFacialTracking.json` değeri `1`). Ayrıntılar diğer reponun `README.md` ve `Docs/sohbet-gecmisi.md` dosyalarında.
+
 ## Test durumu
 - Kod derleniyor. Play modunda gözlük olmadan çalıştırıldı: geçiş hatasız tetikleniyor, Play'den çıkınca ayar geri dönüyor.
-- **Gözlükte henüz denenmedi.** XR'ı aynı uygulama içinde yeniden başlatmak SteamVR'da genelde sorunsuz çalışır, ama bu kurulumda (Vive katmanları + Quad-Views-Foveated) daha önce denenmedi.
+- **Gözlükte henüz denenmedi.** Göz takibi kontrolü (Eye Gaze Debug) de gözlükte denenecek. XR'ı aynı uygulama içinde yeniden başlatmak SteamVR'da genelde sorunsuz çalışır, ama bu kurulumda (Vive katmanları + Quad-Views-Foveated) daha önce denenmedi.
 
-### Gözlükte kontrol edilecekler
-- Console'da 1'e bastıktan sonra şu satır görünmeli: `[QuadViews] XR restarted. Quad views requested: True, active: True`.
-- `%LocalAppData%\Quad-Views-Foveated\Quad-Views-Foveated.log` dosyasında her açılışta `Session is using quad views` yazmalı.
+### Gözlükte test listesi
+Önce (bir kez):
+1. VR bilgisayarında projeyi **Unity 6000.3.21f1** ile aç. Editor D3D11 ile açılmalı (Unity'nin pencere başlığında `<DX11>` yazar).
+2. Vive Console for SteamVR çalışıyor, `sr_runtime.exe` (SRanipal) açık ve göz kalibrasyonu yapılmış olsun.
+3. SteamVR, OpenXR runtime olarak seçili olsun.
+4. Quad-Views-Foveated kurulu olsun. Varsayılan ayarlarla denemek için `%LocalAppData%\Quad-Views-Foveated\settings.cfg` olmamalı ya da içinde ayar satırı olmamalı. Kontrol için: Quad Views Simulator → **Load installed layer settings**; Console hangi dosyaları ve satırları okuduğunu yazar.
+5. İstersen katmanın kendi bakış göstergesi için `settings.cfg` dosyasına `debug_eye_gaze=1` ekle (test bitince sil).
+
+Play'e bastıktan sonra:
+1. **Quad views çalışıyor mu?** Performans göstergesinde `XR: 4 views` ve `Quad views ON` yazmalı. Console'da `[QuadViews] XR_VARJO_quad_views enabled` görünmeli. Katmanın log'unda (`%LocalAppData%\Quad-Views-Foveated\Quad-Views-Foveated.log`) `Session is using quad views` yazmalı.
+2. **Göz verisi Unity'ye geliyor mu?** Göstergede `Eye gaze tracked` ve bakış açısı yazmalı. Baktığın yerde küçük kırmızı bir nokta görünmeli (**G** ile gizlenir). Console'da `[EyeGaze] Tracked` satırı çıkmalı. `Eye gaze: no device` ya da `NOT tracked` yazıyorsa veri gelmiyor demektir.
+3. **Katman göz takibini kullanıyor mu?** Yamalı katmanın log'unda `Eye gaze interaction extension granted but not reported as supported; using it anyway` ya da `Eye tracking is supported` yazmalı. `not supported` yazıyorsa odak ortada sabit kalır: yamalı DLL'in kopyalandığını ve DragonDreams katmanının kurulu olduğunu kontrol et ("Göz takibi kurulumu" bölümü). `debug_eye_gaze=1` açıkken katmanın gösterdiği bakış noktası ile Unity'nin kırmızı noktası aynı yöne gitmeli; odak gözün tersine gidiyorsa `invert_eye_gaze_x=1` veya `invert_eye_gaze_y=1` ekle.
+4. **Fark:** **1** ile quad views'ı kapat/aç (XR bir iki saniye yeniden başlar). F2 ile kayıt alıp açık/kapalı performansı karşılaştır.
+5. **SSAO lekesi gözlükte de var mı?** Odak bölgesinin kenarında kamerayla hareket eden koyu lekeler görürsen **O** ile SSAO'yu kapatıp karşılaştır. Göstergede `SSAO on/off` yazar.
+
+Tuşlar (gözlükte): **1** quad views, **F1** göstergeyi gizle, **F2** kayıt, **G** bakış noktası, **O** SSAO.

@@ -220,6 +220,8 @@ namespace Benchmark
                 sb.AppendLine($"XR: {last.views} views, {last.pixels / 1e6:F2} M pixels");
             else
                 sb.AppendLine("XR: not running (desktop)");
+            if (last.views > 0)
+                sb.AppendLine(EyeGazeDebug.status + (QuadViewsSimulator.ambientOcclusionEnabled ? "   SSAO on" : "   SSAO off"));
             if (QuadViewsSimulator.isSimulating && last.views == 0)
                 sb.AppendLine("<color=#7CFC00>Quad views SIMULATED (desktop)</color>");
             else
@@ -306,7 +308,7 @@ namespace Benchmark
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 1000;
             var rect = (RectTransform)m_Root.transform;
-            rect.sizeDelta = new Vector2(520, 420);
+            rect.sizeDelta = new Vector2(520, 460);
             rect.localScale = Vector3.one * 0.0012f;
 
             // Draw over the scene so walls do not hide the overlay.
