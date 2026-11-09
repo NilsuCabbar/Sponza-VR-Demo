@@ -140,6 +140,14 @@ namespace Foveation
         {
             IEnumerator Start()
             {
+                var eyeGaze = OpenXRSettings.Instance != null ? OpenXRSettings.Instance.GetFeature<EyeGazeInteraction>() : null;
+                if (eyeGaze == null || !eyeGaze.enabled)
+                {
+                    Debug.Log("[QuadViews] Unity's Eye Gaze Interaction feature is off; only the Quad-Views-Foveated layer reads the gaze. Check its log for eye tracking.");
+                    Destroy(gameObject);
+                    yield break;
+                }
+
                 for (var i = 0; i < 10; i++)
                 {
                     yield return new WaitForSeconds(2f);

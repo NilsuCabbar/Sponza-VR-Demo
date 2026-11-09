@@ -28,6 +28,10 @@ Shader "Hidden/Foveation/QuadViewsSimulator"
             sampler2D _FocusTex;
             float4 _FocusTex_TexelSize;
 
+            float _ResolutionColors;    // color each view by its resolution (key R)
+            float4 _PeripheryColor;     // rgb, a = opacity
+            float4 _FocusColor;
+
             float4 _FocusRect;      // xMin, yMin, xMax, yMax in 0..1 screen coordinates
             float2 _Gaze;           // gaze point in 0..1 screen coordinates
             float _Smoothing;       // smoothen_focus_view_edges: blend width as a fraction of the focus region
@@ -82,9 +86,17 @@ Shader "Hidden/Foveation/QuadViewsSimulator"
                 return sharpened * sharpened;
             }
 
+            // Same look as ResolutionOverlay.shader in the headset: a translucent tint.
+            float3 TintResolution(float3 color, float4 tint)
+            {
+                return lerp(color, tint.rgb, tint.a);
+            }
+
             float4 frag(v2f i) : SV_Target
             {
                 float3 color = tex2D(_MainTex, i.uv).rgb;
+                if (_ResolutionColors > 0)
+                    color = TintResolution(color, _PeripheryColor);
                 float2 size = _FocusRect.zw - _FocusRect.xy;
                 float2 f = (i.uv - _FocusRect.xy) / size;
                 bool inside = all(f >= 0) && all(f <= 1);
@@ -93,7 +105,10 @@ Shader "Hidden/Foveation/QuadViewsSimulator"
                 {
                     float edge = min(min(f.x, 1 - f.x), min(f.y, 1 - f.y));
                     float weight = _Smoothing > 0 ? smoothstep(0, _Smoothing, edge) : 1;
-                    color = lerp(color, SampleFocus(f), weight);
+                    float3 focus = SampleFocus(f);
+                    if (_ResolutionColors > 0)
+                        focus = TintResolution(focus, _FocusColor);
+                    color = lerp(color, focus, weight);
                 }
 
                 if (_ShowRegion > 0)

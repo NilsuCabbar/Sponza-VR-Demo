@@ -221,16 +221,39 @@ namespace Benchmark
             else
                 sb.AppendLine("XR: not running (desktop)");
             if (last.views > 0)
-                sb.AppendLine(EyeGazeDebug.status + (QuadViewsSimulator.ambientOcclusionEnabled ? "   SSAO on" : "   SSAO off"));
+                sb.AppendLine(EyeGazeDebug.status);
             if (QuadViewsSimulator.isSimulating && last.views == 0)
                 sb.AppendLine("<color=#7CFC00>Quad views SIMULATED (desktop)</color>");
             else
                 sb.AppendLine(last.quadViews ? "<color=#7CFC00>Quad views ON</color>" : "<color=#FF8C00>Quad views OFF</color>");
+            // Quad views settings: in the headset the layer's (settings.cfg), on the desktop the simulation's.
+            if (last.views > 0 && last.quadViews)
+                sb.AppendLine(string.Format(k_Inv, "Focus {0:0}% x {1:0}% of view   periphery {2:0}% res{3}",
+                    QuadViewsToggle.focusSection.x * 100f, QuadViewsToggle.focusSection.y * 100f, QuadViewsToggle.peripheralMultiplier * 100f,
+                    QuadViewsToggle.applying ? "   <color=#FFD700>applying, XR restarts…</color>" : ""));
+            else if (last.views == 0 && QuadViewsSimulator.isSimulating)
+                sb.AppendLine(string.Format(k_Inv, "Focus {0:0}% x {1:0}% of view   periphery {2:0}% res",
+                    QuadViewsSimulator.focusSection.x * 100f, QuadViewsSimulator.focusSection.y * 100f, QuadViewsSimulator.peripheralMultiplier * 100f));
+
+            // Like the "Overlay: on/off" line of Sponza_Intel_Foveated_Rendering_Shader, with the colors' meaning below.
+            sb.AppendLine($"Resolution colors: {(QuadViewsResolution.show ? "<color=#7CFC00>ON</color>" : "off")}  (R)");
+            if (QuadViewsResolution.show)
+            {
+                var legend = QuadViewsResolution.Legend(Camera.main);
+                sb.AppendLine(!string.IsNullOrEmpty(legend) ? legend
+                    : QuadViewsResolution.LegendLine(QuadViewsResolution.ColorForRatio(1f), "whole screen", Screen.width, Screen.height, 1f));
+            }
 
             if (m_Recording != null)
                 sb.AppendLine($"<color=#FF4040>● REC {Time.unscaledTime - m_RecordingStart:F0} s</color>  ({m_RecordKey} to stop)");
-            else
-                sb.AppendLine($"<size=18>{m_RecordKey}: record   {m_ToggleKey}: hide</size>");
+
+            // Every key that does something in the headset (the desktop simulation has the same ones plus its own help panel).
+            sb.AppendLine("<size=17><color=#BBBBBB>" +
+                "1: quad views on/off (XR restarts)   R: resolution colors\n" +
+                "PgUp/PgDn: focus region larger/smaller\n" +
+                "Home/End: periphery resolution up/down   Backspace: reset\n" +
+                $"{m_RecordKey}: record   {m_ToggleKey}: hide this panel" +
+                "</color></size>");
             return sb.ToString();
         }
 
@@ -308,7 +331,7 @@ namespace Benchmark
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 1000;
             var rect = (RectTransform)m_Root.transform;
-            rect.sizeDelta = new Vector2(520, 460);
+            rect.sizeDelta = new Vector2(520, 600); // room for the resolution colors legend and the key list
             rect.localScale = Vector3.one * 0.0012f;
 
             // Draw over the scene so walls do not hide the overlay.

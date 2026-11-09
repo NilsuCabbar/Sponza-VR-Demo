@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
 
 namespace Foveation
@@ -25,6 +26,9 @@ namespace Foveation
         {
             get
             {
+                var feature = OpenXRSettings.Instance != null ? OpenXRSettings.Instance.GetFeature<EyeGazeInteraction>() : null;
+                if (feature == null || !feature.enabled)
+                    return "Eye gaze: read by the layer only (Unity feature off)";
                 switch (state)
                 {
                     case GazeState.Tracked: return $"<color=#7CFC00>Eye gaze tracked</color>  {angles.x:+0;-0}° {angles.y:+0;-0}°";
@@ -51,6 +55,12 @@ namespace Foveation
 
         [SerializeField]
         Color m_DotColor = new Color(1f, 0.15f, 0.15f);
+
+        [Tooltip("If the gaze points behind the head, turn it 180° around Y. Only affects this dot, not the layer.")]
+        [SerializeField]
+        bool m_FixBackwardGaze = true;
+
+        bool m_LoggedBackwardGaze;
 
         // Referenced so builds include the shader.
         [SerializeField, HideInInspector]
@@ -100,6 +110,18 @@ namespace Foveation
             var worldDirection = (space != null ? space.rotation : Quaternion.identity) * rotation * Vector3.forward;
 
             var local = camera.transform.InverseTransformDirection(worldDirection);
+            // Sponza_Intel_Foveated_Rendering_Shader measured that on Vive Pro Eye the raw gaze can arrive turned
+            // 180° around the head's Y axis. Eyes cannot look backwards, so mirror it to the front.
+            if (m_FixBackwardGaze && local.z < 0f)
+            {
+                if (!m_LoggedBackwardGaze)
+                {
+                    Debug.LogWarning("[EyeGaze] Gaze points behind the head; turning it 180° around Y (Fix Backward Gaze).");
+                    m_LoggedBackwardGaze = true;
+                }
+                local = new Vector3(-local.x, local.y, -local.z);
+                worldDirection = camera.transform.TransformDirection(local);
+            }
             angles = new Vector2(Mathf.Atan2(local.x, local.z), Mathf.Atan2(local.y, local.z)) * Mathf.Rad2Deg;
 
             if (m_Dot == null)

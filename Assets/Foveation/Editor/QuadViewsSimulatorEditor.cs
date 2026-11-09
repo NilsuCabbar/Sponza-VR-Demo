@@ -18,7 +18,7 @@ namespace Foveation.Editor
             EditorGUILayout.LabelField("Match the headset", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Sets all resolution, focus region, blending and sharpening settings at once. " +
-                "The mode, SSAO, gaze controls and keys stay as they are.", MessageType.None);
+                "The mode, gaze controls and keys stay as they are.", MessageType.None);
 
             using (new EditorGUILayout.HorizontalScope())
             {

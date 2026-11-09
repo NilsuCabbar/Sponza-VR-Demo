@@ -1,5 +1,8 @@
+using System.Linq;
 using System.Text;
 using UnityEditor;
+using UnityEditor.XR.Management;
+using UnityEditor.XR.Management.Metadata;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.XR.OpenXR;
@@ -33,6 +36,20 @@ namespace Foveation.Editor
             }
             log.AppendLine("- Windows graphics API: Direct3D11 only");
 
+            // 2. OpenXR must be the active XR loader for PC, otherwise "Initialize XR on Startup" starts nothing.
+            var generalSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTargetGroup.Standalone);
+            if (generalSettings == null || generalSettings.AssignedSettings == null)
+            {
+                EditorUtility.DisplayDialog("Foveated Rendering", "XR Plug-in Management settings for Standalone were not found. Open Project Settings > XR Plug-in Management once, then run this again.", "OK");
+                return;
+            }
+            if (!generalSettings.AssignedSettings.activeLoaders.Any(l => l is OpenXRLoader))
+                XRPackageMetadataStore.AssignLoader(generalSettings.AssignedSettings, typeof(OpenXRLoader).FullName, BuildTargetGroup.Standalone);
+            generalSettings.InitManagerOnStart = true;
+            EditorUtility.SetDirty(generalSettings);
+            EditorUtility.SetDirty(generalSettings.AssignedSettings);
+            log.AppendLine("- XR Plug-in Management (PC): OpenXR loader, Initialize XR on Startup");
+
             var settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Standalone);
             if (settings == null)
             {
@@ -40,17 +57,19 @@ namespace Foveation.Editor
                 return;
             }
 
-            // 2. Single Pass Instanced with quad views has been reported to crash on PC, so use Multi-pass.
+            // 3. Single Pass Instanced with quad views has been reported to crash on PC, so use Multi-pass.
             settings.renderMode = OpenXRSettings.RenderMode.MultiPass;
             log.AppendLine("- OpenXR Render Mode: Multi-pass");
 
-            // 3. Quad views replaces the VRS-based foveation, which cannot follow the eyes on SteamVR.
+            // 4. Quad views replaces the VRS-based foveation, which cannot follow the eyes on SteamVR.
             SetFeature<FoveatedRenderingFeature>(settings, false, log);
             SetFeature<QuadViewsFoveationFeature>(settings, true, log);
             // Vive Pro Eye controllers.
             SetFeature<HTCViveControllerProfile>(settings, true, log);
-            // Eye gaze input for the app itself (the layer reads gaze on its own).
-            SetFeature<EyeGazeInteraction>(settings, true, log);
+            // The layer reads the gaze on its own. With Unity's eye gaze feature also on, Unity's eye gaze action space
+            // fails through the DragonDreams VIVE SDK layer (XR_ERROR_PATH_UNSUPPORTED for /user/eyes_ext) and every
+            // xrSyncActions fails, so the layer never gets the gaze either (seen on the headset PC, 9 Nov 2026).
+            SetFeature<EyeGazeInteraction>(settings, false, log);
 
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();

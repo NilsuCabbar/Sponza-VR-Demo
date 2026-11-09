@@ -39,9 +39,6 @@ namespace Foveation
 
         static QuadViewsSimulator s_Running;
 
-        /// <summary>Whether this component currently allows SSAO (key O), for the performance overlay.</summary>
-        public static bool ambientOcclusionEnabled { get; private set; } = true;
-
         [SerializeField]
         QuadViewsSimulationMode m_Mode = QuadViewsSimulationMode.EyeTracked;
 
@@ -99,17 +96,6 @@ namespace Foveation
         [SerializeField]
         float m_SharpenFocusView = 0.7f;
 
-        [Header("Screen space effects")]
-        [Tooltip("Screen Space Ambient Occlusion, on the desktop and in the headset. SSAO runs separately on each view, so the " +
-            "focus view gets its own AO: darker smudges near its border and a noise pattern that does not match the periphery. " +
-            "Real quad views render the focus view separately too. Turn off to compare. The renderer's own setting is restored on exit.")]
-        [SerializeField]
-        bool m_ScreenSpaceAmbientOcclusion = true;
-
-        [Tooltip("Renderer whose SSAO feature the option above switches. The original state is restored when the simulation stops.")]
-        [SerializeField]
-        UniversalRendererData m_Renderer;
-
         [Header("Simulated gaze")]
         [Tooltip("Gaze point, -1 to 1 on each axis of the view (0, 0 = center). The arrow keys move it.")]
         [SerializeField]
@@ -131,6 +117,15 @@ namespace Foveation
         [Range(0f, 0.5f)]
         [SerializeField]
         float m_PeripheryTint = 0.12f;
+
+        [Tooltip("Color the whole screen by the resolution each part is rendered at, like the VRS overlay of " +
+            "Sponza_Intel_Foveated_Rendering_Shader: green 1x1 (full), yellow 2x2 (half), red 4x4. Works in the headset too.")]
+        [SerializeField]
+        bool m_ResolutionColors;
+
+        [Range(0.1f, 1f)]
+        [SerializeField]
+        float m_ResolutionColorOpacity = 0.3f;
 
         [SerializeField]
         bool m_ShowHelp = true;
@@ -157,13 +152,38 @@ namespace Foveation
         Key m_RegionKey = Key.V;
 
         [SerializeField]
+        Key m_ResolutionKey = Key.R;
+
+        [Tooltip("Same keys as QuadViewsToggle in the headset: focus region larger / smaller (the current mode's sections), " +
+            "peripheral resolution higher / lower, and back to the layer's defaults.")]
+        [SerializeField]
+        Key m_FocusLargerKey = Key.PageUp;
+
+        [SerializeField]
+        Key m_FocusSmallerKey = Key.PageDown;
+
+        [SerializeField]
+        Key m_PeripheryHigherKey = Key.Home;
+
+        [SerializeField]
+        Key m_PeripheryLowerKey = Key.End;
+
+        [SerializeField]
+        Key m_ResetKey = Key.Backspace;
+
+        /// <summary>Focus region (fraction of the field of view) and peripheral resolution of the running simulation, for the performance overlay.</summary>
+        public static Vector2 focusSection => s_Running == null ? Vector2.zero
+            : s_Running.m_Mode == QuadViewsSimulationMode.Fixed
+                ? new Vector2(s_Running.m_HorizontalFixedSection, s_Running.m_VerticalFixedSection)
+                : new Vector2(s_Running.m_HorizontalFocusSection, s_Running.m_VerticalFocusSection);
+
+        public static float peripheralMultiplier => s_Running == null ? 0f : s_Running.m_PeripheralMultiplier;
+
+        [SerializeField]
         Key m_CenterKey = Key.C;
 
         [SerializeField]
         Key m_HelpKey = Key.H;
-
-        [SerializeField]
-        Key m_AmbientOcclusionKey = Key.O;
 
         [SerializeField, HideInInspector]
         Shader m_Shader;
@@ -181,7 +201,6 @@ namespace Foveation
         Material m_Material;
         RectInt m_FocusRect;
 
-        readonly Dictionary<ScriptableRendererFeature, bool> m_OriginalFeatureStates = new Dictionary<ScriptableRendererFeature, bool>();
         TrackedPoseDriver m_DisabledPoseDriver;
         float m_Yaw, m_Pitch;
         bool m_LookInitialized;
@@ -193,6 +212,9 @@ namespace Foveation
         static readonly int k_Sharpen = Shader.PropertyToID("_Sharpen");
         static readonly int k_ShowRegion = Shader.PropertyToID("_ShowRegion");
         static readonly int k_PeripheryTint = Shader.PropertyToID("_PeripheryTint");
+        static readonly int k_ResolutionColors = Shader.PropertyToID("_ResolutionColors");
+        static readonly int k_PeripheryColor = Shader.PropertyToID("_PeripheryColor");
+        static readonly int k_FocusColor = Shader.PropertyToID("_FocusColor");
         static readonly int k_ScreenSize = Shader.PropertyToID("_ScreenSizePx");
 
         public QuadViewsSimulationMode mode
@@ -211,15 +233,14 @@ namespace Foveation
         {
             StopSimulation();
             RestorePoseDriver();
-            RestoreRendererFeatures();
         }
 
         void Update()
         {
             var xrRunning = IsXRRunning();
             HandleKeys(xrRunning);
-            // Also with a headset, to compare the per-view AO of the real quad views.
-            ApplyAmbientOcclusion();
+            QuadViewsResolution.show = m_ResolutionColors;
+            QuadViewsResolution.opacity = m_ResolutionColorOpacity;
 
             if (xrRunning)
             {
@@ -282,12 +303,16 @@ namespace Foveation
                 m_Mode = m_Mode == QuadViewsSimulationMode.Fixed ? QuadViewsSimulationMode.EyeTracked : QuadViewsSimulationMode.Fixed;
             if (keyboard[m_RegionKey].wasPressedThisFrame)
                 m_ShowRegion = !m_ShowRegion;
+            // Also with a headset: QuadViewsResolutionOverlayFeature colors the real views.
+            if (keyboard[m_ResolutionKey].wasPressedThisFrame)
+                m_ResolutionColors = !m_ResolutionColors;
+            // With a headset these keys belong to QuadViewsToggle, which writes the layer's settings.cfg.
+            if (!xrRunning)
+                HandleSettingKeys(keyboard);
             if (keyboard[m_HelpKey].wasPressedThisFrame)
                 m_ShowHelp = !m_ShowHelp;
             if (keyboard[m_CenterKey].wasPressedThisFrame)
                 m_Gaze = Vector2.zero;
-            if (keyboard[m_AmbientOcclusionKey].wasPressedThisFrame)
-                m_ScreenSpaceAmbientOcclusion = !m_ScreenSpaceAmbientOcclusion;
 
             var move = Vector2.zero;
             if (keyboard.leftArrowKey.isPressed)
@@ -437,6 +462,7 @@ namespace Foveation
         {
             if (s_Running != this)
                 return;
+            QuadViewsResolution.desktopLegend = null;
 
             if (m_Camera != null)
             {
@@ -527,35 +553,17 @@ namespace Foveation
             m_Material.SetFloat(k_Sharpen, m_SharpenFocusView);
             m_Material.SetFloat(k_ShowRegion, m_ShowRegion ? 1f : 0f);
             m_Material.SetFloat(k_PeripheryTint, m_PeripheryTint);
+            // Densities relative to the screen, compared to the denser view, like QuadViewsResolution does in the headset.
+            var maxDensity = Mathf.Max(m_PeripheralMultiplier, m_FocusMultiplier);
+            m_Material.SetFloat(k_ResolutionColors, m_ResolutionColors ? 1f : 0f);
+            m_Material.SetColor(k_PeripheryColor, QuadViewsResolution.ColorForRatio(m_PeripheralMultiplier / maxDensity));
+            m_Material.SetColor(k_FocusColor, QuadViewsResolution.ColorForRatio(m_FocusMultiplier / maxDensity));
+            QuadViewsResolution.desktopLegend =
+                QuadViewsResolution.LegendLine(QuadViewsResolution.ColorForRatio(m_FocusMultiplier / maxDensity), "focus",
+                    m_FocusTarget.width, m_FocusTarget.height, m_FocusMultiplier / maxDensity) + "\n" +
+                QuadViewsResolution.LegendLine(QuadViewsResolution.ColorForRatio(m_PeripheralMultiplier / maxDensity), "periphery",
+                    m_PeripheryTarget.width, m_PeripheryTarget.height, m_PeripheralMultiplier / maxDensity);
             m_Material.SetVector(k_ScreenSize, new Vector4(width, height, 0f, 0f));
-        }
-
-        // SSAO is a renderer feature shared by every camera using the renderer, so its state is remembered and restored.
-        void ApplyAmbientOcclusion()
-        {
-            ambientOcclusionEnabled = m_ScreenSpaceAmbientOcclusion;
-            if (m_Renderer == null)
-                return;
-            foreach (var feature in m_Renderer.rendererFeatures)
-            {
-                if (feature == null || feature.GetType().Name != "ScreenSpaceAmbientOcclusion")
-                    continue;
-                if (!m_OriginalFeatureStates.ContainsKey(feature))
-                    m_OriginalFeatureStates[feature] = feature.isActive;
-                var active = m_OriginalFeatureStates[feature] && m_ScreenSpaceAmbientOcclusion;
-                if (feature.isActive != active)
-                    feature.SetActive(active);
-            }
-        }
-
-        void RestoreRendererFeatures()
-        {
-            foreach (var pair in m_OriginalFeatureStates)
-            {
-                if (pair.Key != null && pair.Key.isActive != pair.Value)
-                    pair.Key.SetActive(pair.Value);
-            }
-            m_OriginalFeatureStates.Clear();
         }
 
         // Focus rectangle in whole screen pixels. Its size is the section of the field of view; eye tracked mode
@@ -620,12 +628,48 @@ namespace Foveation
                 sb.AppendLine(string.Format(k_Inv, "Gaze {0:+0.00;-0.00} {1:+0.00;-0.00}   focus {2}x{3} px, periphery {4}x{5} px",
                     m_Gaze.x, m_Gaze.y, m_FocusTarget.width, m_FocusTarget.height, m_PeripheryTarget.width, m_PeripheryTarget.height));
                 sb.AppendLine(string.Format(k_Inv, "Pixels {0:F2} M instead of {1:F2} M ({2:+0;-0}%)", rendered / 1e6, full / 1e6, (rendered / full - 1.0) * 100.0));
+                if (m_ResolutionColors && !string.IsNullOrEmpty(QuadViewsResolution.desktopLegend))
+                    sb.AppendLine(QuadViewsResolution.desktopLegend);
             }
+            else if (m_ResolutionColors)
+                sb.AppendLine(QuadViewsResolution.LegendLine(QuadViewsResolution.ColorForRatio(1f), "whole screen", Screen.width, Screen.height, 1f));
             sb.AppendLine($"{m_ToggleKey}: on/off   {m_ModeKey}: fixed/eye tracked   {m_RegionKey}: show region   {m_CenterKey}: center gaze");
-            sb.AppendLine($"Arrows: move gaze (Shift faster)   {m_AmbientOcclusionKey}: SSAO {(m_ScreenSpaceAmbientOcclusion ? "on" : "off")}   {m_HelpKey}: hide this");
+            sb.AppendLine($"{m_ResolutionKey}: resolution colors   Arrows: move gaze (Shift faster)   {m_HelpKey}: hide this");
+            sb.AppendLine($"{m_FocusLargerKey}/{m_FocusSmallerKey}: focus region larger/smaller   {m_PeripheryHigherKey}/{m_PeripheryLowerKey}: periphery resolution   {m_ResetKey}: reset");
             if (m_CameraControls)
                 sb.Append("Right mouse: look   WASD: move   E/Q: up/down");
             return sb.ToString();
+        }
+
+        void HandleSettingKeys(Keyboard keyboard)
+        {
+            var step = 0f;
+            if (keyboard[m_FocusLargerKey].wasPressedThisFrame) step += 0.05f;
+            if (keyboard[m_FocusSmallerKey].wasPressedThisFrame) step -= 0.05f;
+            if (step != 0f)
+            {
+                if (m_Mode == QuadViewsSimulationMode.Fixed)
+                {
+                    m_HorizontalFixedSection = Mathf.Clamp(m_HorizontalFixedSection + step, 0.1f, 0.9f);
+                    m_VerticalFixedSection = Mathf.Clamp(m_VerticalFixedSection + step, 0.1f, 0.9f);
+                }
+                else
+                {
+                    m_HorizontalFocusSection = Mathf.Clamp(m_HorizontalFocusSection + step, 0.1f, 0.9f);
+                    m_VerticalFocusSection = Mathf.Clamp(m_VerticalFocusSection + step, 0.1f, 0.9f);
+                }
+            }
+
+            if (keyboard[m_PeripheryHigherKey].wasPressedThisFrame)
+                m_PeripheralMultiplier = Mathf.Clamp(m_PeripheralMultiplier + 0.1f, 0.1f, 1f);
+            if (keyboard[m_PeripheryLowerKey].wasPressedThisFrame)
+                m_PeripheralMultiplier = Mathf.Clamp(m_PeripheralMultiplier - 0.1f, 0.1f, 1f);
+
+            if (keyboard[m_ResetKey].wasPressedThisFrame)
+            {
+                foreach (var key in new[] { "peripheral_multiplier", "horizontal_focus_section", "vertical_focus_section", "horizontal_fixed_section", "vertical_fixed_section" })
+                    SetLayerSetting(key, Array.Find(k_LayerSettings, s => s.key == key).defaultValue);
+            }
         }
 
         // The layer's settings.cfg keys and defaults, from the Advanced Configuration page of Quad-Views-Foveated.

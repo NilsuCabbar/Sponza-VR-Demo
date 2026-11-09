@@ -37,12 +37,45 @@ Not: `Sponza.gltf` sahneye yeniden sürüklenirse, yeni kopya yine UV2'siz oriji
 - `Assets/Foveation/Editor/FoveationProjectSetup.cs`: **Tools → Foveated Rendering → Configure Eye-Tracked Quad Views (Vive Pro Eye)** menüsü. Şunları ayarlar:
   - Direct3D 11
   - Multi-pass render modu
-  - Quad Views, HTC Vive Controller ve Eye Gaze feature'larını açar; VRS foveation'ı kapatır.
+  - OpenXR loader'ını atar; Quad Views ve HTC Vive Controller feature'larını açar; Unity'nin Eye Gaze feature'ını ve VRS foveation'ı kapatır (aşağıda "Unity'nin Eye Gaze feature'ı neden kapalı?" bölümüne bakın); VRS foveation'ı kapatır.
 - `Assets/Foveation/QuadViewsToggle.cs`: Sahnedeki **Quad Views Toggle** objesinde duruyor.
 
 ### Nasıl kullanılır?
 - Play modunda **1** tuşuna bas. Tuş Inspector'dan değiştirilebilir.
 - Ya da Inspector'daki **Quad Views** tikini aç ya da kapat. Tik, o anki durumu gösterir.
+
+### Quad views ayarlarını çalışırken değiştirmek
+| Tuş | Ne yapar | Katmandaki ayar |
+|---|---|---|
+| **PageUp / PageDown** | Odak bölgesini büyüt / küçült (her basışta görüş alanının %5'i, %10–90 arası) | `horizontal_focus_section`, `vertical_focus_section` |
+| **Home / End** | Çevrenin çözünürlüğünü artır / azalt (her basışta %10, %10–100 arası) | `peripheral_multiplier` |
+| **Backspace** | Bu üç ayarı katmanın varsayılanlarına döndür (0.35, 0.35, 0.5) | – |
+
+- **Gözlükte:** Katman ayarlarını yalnızca XR oturumu başlarken okuyor. Bu yüzden tuşlar `%LocalAppData%\Quad-Views-Foveated\settings.cfg` dosyasında yalnızca bu satırları değiştirip XR'ı yeniden başlatır (bir iki saniye siyah ekran). Arka arkaya basınca XR son basıştan 0,6 saniye sonra bir kez yeniden başlar. Varsayılana dönen ayarın satırı dosyadan silinir; dosyadaki diğer satırlara dokunulmaz. Bu dosya o bilgisayardaki bütün quad views uygulamaları için geçerli.
+- **Masaüstünde (simülasyon):** Aynı tuşlar simülatörün ayarlarını anında değiştirir. Sabit modda sabit odak bölgesini (`*_fixed_section`) değiştirir.
+- Değerler performans göstergesinde `Focus 35% x 35% of view   periphery 50% res` satırında yazar. Ayar uygulanırken yanında `applying, XR restarts…` görünür. **R** açıkken değişiklik renklerde de görülür.
+
+Performans göstergesinin altında bütün tuşların listesi var: **1**, **R**, **PageUp/PageDown**, **Home/End**, **Backspace**, **F2**, **F1**.
+
+### Çözünürlük renkleri: ekranın neresi hangi çözünürlükte çiziliyor? (R)
+**R** tuşu ya da Quad Views Simulator'daki **Resolution Colors** tiki. Masaüstünde ve gözlükte aynı şekilde çalışır; Sponza_Intel_Foveated_Rendering_Shader'daki VRS overlay'i (V) gibi düz, yarı saydam renkler (saydamlık 0.3, Inspector'da **Resolution Color Opacity**).
+
+Her bölge, orayı çizen görüntünün piksel yoğunluğuna göre boyanır. Yoğunluk, o anki en yüksek yoğunluğa (varsayılan olarak ekranın kendi çözünürlüğü) oranlanır. Renkler o projedekiyle aynı; "NxN", çizilen bir pikselin ekranda kaç piksele denk geldiği:
+
+| Renk | Oran | Karşılığı |
+|---|---|---|
+| Yeşil | %90 ve üstü | 1x1, tam çözünürlük (odak) |
+| Sarı-yeşil | %65–90 | ~1.5x1.5 |
+| Sarı | %40–65 | 2x2 (varsayılan çevre: %50) |
+| Turuncu | %30–40 | ~3x3 |
+| Kırmızı | %30'un altı | 4x4 ve daha düşük |
+
+Odak bölgesinin kenarındaki yeşilden sarıya geçiş, katmanın iki görüntüyü yumuşatarak birleştirdiği şerit (`smoothen_focus_view_edges`).
+
+Performans göstergesinde `Resolution colors: ON/off (R)` satırı ve açıkken her bölge kendi renginde yazar, ör. `■ focus 864x960  100%  (1x1)` ve `■ periphery 1234x1370  50%  (2x2)` (bu bilgisayardaki gözlükte katmanın log'undaki değerler). Masaüstünde aynısı sağ üstteki yardım panelinde de var.
+
+Gözlükte bunu `PC_Renderer`'daki **QuadViewsResolutionOverlay** renderer feature'ı yapıyor (`Assets/Foveation/QuadViewsResolutionOverlayFeature.cs`, `Shaders/ResolutionOverlay.shader`). Quad views'da Unity her gözü iki ayrı görüntü (çevre + odak) olarak çiziyor. Feature her görüntünün çözünürlüğünü ve görüş açısını okuyup kendi rengini veriyor; sonra katman bunları birleştiriyor. Renkler post-process'ten sonra eklendiği için bloom ya da tonemapping'den etkilenmez. Kapalıyken hiçbir maliyeti yok.
+
 
 ### Nasıl çalışıyor?
 Quad views, OpenXR oturumu açılırken seçilen bir görüntü yapılandırması. Oturum açıkken değiştirilemiyor. Unity de OpenXR çalışırken feature'ın açılıp kapatılmasına izin vermiyor (`OpenXRFeature.enabled cannot be changed while OpenXR is running`). Bu yüzden script her geçişte şunları yapar:
@@ -56,7 +89,7 @@ Bu sırada gözlükte bir iki saniyelik siyah ekran olur. Uygulama ve sahne kapa
 Editor'de Play modundan çıkınca feature eski haline döner. Böylece Play modunda yapılan geçişler OpenXR ayarlarını kalıcı olarak değiştirmez.
 
 ### Proje ayarları
-- XR Plug-in Management: PC (Standalone) için OpenXR açık, "Initialize XR on Startup" açık.
+- XR Plug-in Management: PC (Standalone) için OpenXR açık, "Initialize XR on Startup" açık. (İlk commit'te OpenXR loader'ı listeye yazılmamıştı, `m_Loaders: []`; bu yüzden gözlükte XR hiç başlamazdı. 9 Kasım 2026'da düzeltildi; kurulum menüsü de artık loader'ı atıyor.)
 - Windows grafik API'si: yalnızca Direct3D 11. Quad-Views-Foveated katmanı yalnızca bununla çalışıyor.
 - OpenXR render modu: Multi-pass. Single Pass Instanced + quad views'ın PC'de çöktüğü bildirilmiş.
 - OpenXR paketi 1.16.1. Bu sürüm `XR_VARJO_quad_views`'ı destekliyor.
@@ -69,7 +102,7 @@ Gözlük takılı değilken quad views'ı masaüstünde taklit eder. Sahnedeki *
 2. İkinci bir kamera sadece odak bölgesini, o bölgeye ait dar bir açıyla tam çözünürlükte çizer (odak).
 3. Bir shader (`Assets/Foveation/Shaders/QuadViewsSimulator.shader`) ikisini kenarları yumuşatarak ekranda birleştirir.
 
-Odak görüntüsü çevreyle piksel piksel hizalı. Bloom ve SSAO gibi ekran efektleri her görüntüye ayrı uygulandığı için sınırda küçük farklar görülebilir; gerçek quad views'da da aynısı olur.
+Odak görüntüsü çevreyle piksel piksel hizalı. Bloom gibi ekran efektleri her görüntüye ayrı uygulandığı için sınırda küçük farklar görülebilir; gerçek quad views'da da aynısı olur.
 
 **Tuşlar** (sağ üstteki yardım panelinde de yazıyor):
 | Tuş | Ne yapar |
@@ -79,7 +112,7 @@ Odak görüntüsü çevreyle piksel piksel hizalı. Bloom ve SSAO gibi ekran efe
 | **C** | Bakışı ortaya al. |
 | **M** | Sabit (göz takipsiz) ile göz takipli mod arasında geç. |
 | **V** | Odak bölgesini göster/gizle: yeşil çerçeve odak, sarı kesikli çizgi yumuşatmanın başladığı yer, kırmızı artı bakış noktası. Çevre hafif maviye boyanır. |
-| **O** | Simülasyon sırasında SSAO'yu aç/kapat (aşağıya bakın). |
+| **R** | Çözünürlük renkleri: ekranın her yerini, orayı çizen görüntünün çözünürlüğüne göre boyar (aşağıya bakın). Gözlükte de çalışır. |
 | **H** | Yardım panelini gizle/göster. |
 | **Sağ fare tuşu + fare** | Kamerayı çevir. |
 | **WASD, E/Q** | Kamerayı hareket ettir, yukarı/aşağı. |
@@ -104,11 +137,11 @@ Odak görüntüsü çevreyle piksel piksel hizalı. Bloom ve SSAO gibi ekran efe
 - **Load installed layer settings:** Katmanın bu bilgisayarda gerçekten kullandığı değerleri yükler: önce varsayılanlar, sonra `%ProgramFiles%\OpenXR-Quad-Views-Foveated\settings.cfg`, sonra `%LocalAppData%\Quad-Views-Foveated\settings.cfg`. Katman gibi, bölümsüz satırları, `[SteamVR...]`, `[app:<ürün adı>]` ve `[exe:<exe adı>]` bölümlerini uygular; diğerlerini (örneğin `[Oculus]`) atlar. Hangi satırları uyguladığını Console'a yazar. Katman kurulu değilse düğme gri görünür.
 - **Copy as settings.cfg:** Aşağıdaki paragrafa bakın.
 
-Mod (sabit / göz takipli), SSAO, bakış kontrolleri ve tuşlar bu düğmelerden etkilenmez.
+Mod (sabit / göz takipli), bakış kontrolleri ve tuşlar bu düğmelerden etkilenmez.
 
 **Aynı ayarları gözlükte kullanmak:** **Copy as settings.cfg** düğmesine bas (bileşenin ⋮ menüsünde de var). Ayarlar katmanın formatında panoya kopyalanır. `%LocalAppData%\Quad-Views-Foveated\settings.cfg` dosyasına yapıştır. Katman bu dosyayı XR oturumu başlarken okur; gözlükte **1**'e iki kez basmak oturumu yeniden başlatır. Bu dosya o bilgisayardaki bütün uygulamalar için geçerli olduğu için otomatik yazmıyorum.
 
-**Odak bölgesinde kamerayla hareket eden leke: SSAO.** SSAO (Screen Space Ambient Occlusion) köşe ve girintileri ekrandaki derinlik bilgisinden tahmin edip karartan bir efekt; `PC_Renderer`'da açık. Odak kamerası ayrı bir görüntü çizdiği için SSAO orada ayrıca hesaplanıyor. Kenarlarda komşu bilgi eksik kaldığı için koyu lekeler çıkıyor, içeride de SSAO'nun gürültü deseni çevredekiyle aynı yere düşmüyor. Bu farklar ekrana bağlı olduğu için kamerayla birlikte hareket ediyor ama odak dikdörtgeninden çıkmıyor. SSAO kapalıyken odak bölgesi tam çözünürlüklü görüntüyle birebir aynı çıkıyor. Gerçek quad views da odak görüntüsünü ayrı çizdiği için gözlükte de benzer bir etki beklenir; katmanın kenar yumuşatması bir kısmını gizler. **O** tuşu ya da Inspector'daki **Screen Space Ambient Occlusion** kutusuyla karşılaştırılabilir. Simülasyon bitince SSAO'nun eski durumu geri yüklenir.
+**SSAO kaldırıldı (9 Kasım 2026).** SSAO her görüntüde ayrı hesaplandığı için odak bölgesinin kenarında kamerayla hareket eden koyu lekeler yapıyordu. `PC_Renderer`'dan feature'ı, simülatörden de **O** tuşu ve ilgili ayarlar silindi. Aşağıdaki eski benchmark sonuçları SSAO açıkken alındı.
 
 **Simülasyonun eksikleri:**
 - Keskinleştirme, katman gibi AMD CAS (Contrast Adaptive Sharpening) ile yapılıyor; katmanın kodundaki ayrıntıların hepsi birebir aynı değil. Önceki basit "unsharp mask" sürümü karanlık detaylarda siyah noktalar üretiyordu, bu yüzden değiştirildi.
@@ -121,13 +154,13 @@ Mod (sabit / göz takipli), SSAO, bakış kontrolleri ve tuşlar bu düğmelerde
 |---|---|
 | Kalite seviyesi | **PC** (Mobile seviyesi PC platformunda kapalı) |
 | URP asset | `PC_RPAsset`: render scale 1.0, MSAA kapalı, HDR açık, SRP Batcher açık |
-| Renderer | `PC_Renderer`: Forward+, **SSAO** açık |
+| Renderer | `PC_Renderer`: Forward+, SSAO yok. Tek feature: QuadViewsResolutionOverlay (R ile açılır, kapalıyken etkisiz) |
 | Gölgeler | Ana ışık 2048 çözünürlük, 50 m mesafe, 4 cascade, soft shadows |
 | Post-process (`SampleSceneProfile`) | Tonemapping (Neutral), Bloom, Vignette (0.2). Motion Blur kapalı. Anti-aliasing yok. |
 | Işık | Güneş Mixed (Baked Indirect), yoğunluk 4.5. Lightmap: GPU, 12 texel/m, 2048 atlas, 3 sekme, AO |
 | Dokular | Normal Quality sıkıştırma (DXT/BC), en fazla 2048, bilinear, anisotropic: Forced On |
 | Grafik API | Build için Direct3D 11. Editor hâlâ D3D12 ile açık; yeniden başlatınca D3D11'e geçer. |
-| OpenXR | Multi-pass. Quad Views, Eye Gaze ve HTC Vive Controller feature'ları açık. |
+| OpenXR | Multi-pass. Quad Views ve HTC Vive Controller feature'ları açık. Eye Gaze kapalı: göz verisini yalnızca katman okuyor. |
 
 ## Gözlükte canlı performans göstergesi
 Sahnedeki **Performance Overlay** objesi, oyun benchmark videolarındaki FPS göstergesi gibi, görüş alanının sol üstünde sabit duran bir panel gösterir. Panel quad views'ın odak bölgesinin içinde kalacak şekilde yerleştirildi, yani quad views açıkken de keskin görünür.
@@ -186,7 +219,7 @@ Gözlük olmadan da quad views'ın görüntüye etkisini ölçebilmek için benc
 2. Ortadaki odak bölgesini ikinci bir kamerayla, sadece o bölgeyi kapsayan dar bir açıyla tam çözünürlükte çizer (`focus_multiplier` 1.0).
 3. İkisini, katmanın varsayılanı olan %20'lik yumuşak kenarla birleştirir (`smoothen_focus_view_edges` 0.2).
 
-Odak bölgesi görüş alanının oranı olarak verilir. Katmanın varsayılanları: göz takipsiz (sabit) 0.5 × 0.45, göz takipli 0.35 × 0.35. Göz takibi şu an çalışmadığı için odak hep ortada. Post-process ve SSAO odak görüntüsüne ayrıca uygulanır; gerçek quad views'da da öyle olduğu için, sınırdaki küçük farklar gerçekte de görülecek farklardır.
+Odak bölgesi görüş alanının oranı olarak verilir. Katmanın varsayılanları: göz takipsiz (sabit) 0.5 × 0.45, göz takipli 0.35 × 0.35. Göz takibi şu an çalışmadığı için odak hep ortada. Post-process odak görüntüsüne ayrıca uygulanır; gerçek quad views'da da öyle olduğu için, sınırdaki küçük farklar gerçekte de görülecek farklardır.
 
 Simülasyon katmanın bütün ayrıntılarını içermiyor: katmanın odak görüntüsüne uyguladığı keskinleştirme (`sharpen_focus_view` 0.7) ve lens distorsiyonu yok. Bu yüzden görüntü kalitesi için iyi bir yaklaşım, ama **performans için gözlükte ölçülen değerler esas alınmalı.**
 
@@ -303,6 +336,13 @@ Göz takibi Unity'de değil, VR bilgisayarının kendisinde kurulu iki parçayla
 
 Quad-Views-Foveated yeniden kurulur ya da güncellenirse DLL orijinaliyle değişir; yamalı dosyayı tekrar kopyalamak gerekir.
 
+### Unity'nin Eye Gaze feature'ı neden kapalı?
+9 Kasım 2026'da gözlükte denendi. Unity'nin Eye Gaze Interaction feature'ı açıkken Unity `/user/eyes_ext` için action space oluşturamıyordu (`XR_ERROR_PATH_UNSUPPORTED`) ve her karede `xrSyncActions` aynı hatayla başarısız oluyordu. Katmanın log'unda da `xrSyncActions failed with XR_ERROR_PATH_UNSUPPORTED` satırları vardı; yani katman da göz verisini alamıyor, odak ortada sabit kalıyordu. Quad views'ın kendisi çalışıyordu (`Session is using quad views`).
+
+Tahmin: göz verisini hem Unity hem katman ayrı ayrı isteyince DragonDreams VIVE SDK katmanı bunu kaldıramıyor. Bu yüzden Unity'ninki kapatıldı; foveation için göz verisini katman kendisi okuyor. Eye Gaze Debug'ın kırmızı noktası bu durumda çalışmaz. Unity içinde de göz verisi gerekirse feature'ı tekrar açıp hatanın geri gelip gelmediğine bakmak gerekir.
+
+**Kontrol:** katmanın log'unda (`%LocalAppData%\Quad-Views-Foveated\Quad-Views-Foveated.log`) artık `xrSyncActions failed` olmamalı. `debug_eye_gaze=1` açıkken katmanın bakış göstergesi gözü takip etmeli.
+
 Ayrıca eski HTC katmanının iki kopyası birlikte açıkken Unity çöküyordu; eskisi registry'den kapatılmıştı (`HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Implicit` altında eski `ViveOpenXRFacialTracking.json` değeri `1`). Ayrıntılar diğer reponun `README.md` ve `Docs/sohbet-gecmisi.md` dosyalarında.
 
 ## Test durumu
@@ -319,9 +359,8 @@ Ayrıca eski HTC katmanının iki kopyası birlikte açıkken Unity çöküyordu
 
 Play'e bastıktan sonra:
 1. **Quad views çalışıyor mu?** Performans göstergesinde `XR: 4 views` ve `Quad views ON` yazmalı. Console'da `[QuadViews] XR_VARJO_quad_views enabled` görünmeli. Katmanın log'unda (`%LocalAppData%\Quad-Views-Foveated\Quad-Views-Foveated.log`) `Session is using quad views` yazmalı.
-2. **Göz verisi Unity'ye geliyor mu?** Göstergede `Eye gaze tracked` ve bakış açısı yazmalı. Baktığın yerde küçük kırmızı bir nokta görünmeli (**G** ile gizlenir). Console'da `[EyeGaze] Tracked` satırı çıkmalı. `Eye gaze: no device` ya da `NOT tracked` yazıyorsa veri gelmiyor demektir.
+2. **Göstergedeki göz satırı:** Unity'nin Eye Gaze feature'ı kapalı olduğu için `Eye gaze: read by the layer only` yazar ve kırmızı bakış noktası görünmez. Göz takibinin çalışıp çalışmadığını katmanın log'u ve `debug_eye_gaze=1` ile gösterdiği bakış noktası söyler (3. madde).
 3. **Katman göz takibini kullanıyor mu?** Yamalı katmanın log'unda `Eye gaze interaction extension granted but not reported as supported; using it anyway` ya da `Eye tracking is supported` yazmalı. `not supported` yazıyorsa odak ortada sabit kalır: yamalı DLL'in kopyalandığını ve DragonDreams katmanının kurulu olduğunu kontrol et ("Göz takibi kurulumu" bölümü). `debug_eye_gaze=1` açıkken katmanın gösterdiği bakış noktası ile Unity'nin kırmızı noktası aynı yöne gitmeli; odak gözün tersine gidiyorsa `invert_eye_gaze_x=1` veya `invert_eye_gaze_y=1` ekle.
 4. **Fark:** **1** ile quad views'ı kapat/aç (XR bir iki saniye yeniden başlar). F2 ile kayıt alıp açık/kapalı performansı karşılaştır.
-5. **SSAO lekesi gözlükte de var mı?** Odak bölgesinin kenarında kamerayla hareket eden koyu lekeler görürsen **O** ile SSAO'yu kapatıp karşılaştır. Göstergede `SSAO on/off` yazar.
 
-Tuşlar (gözlükte): **1** quad views, **F1** göstergeyi gizle, **F2** kayıt, **G** bakış noktası, **O** SSAO.
+Tuşlar (gözlükte): **1** quad views, **R** çözünürlük renkleri, **PageUp/PageDown** odak boyutu, **Home/End** çevre çözünürlüğü, **Backspace** varsayılanlar, **F1** göstergeyi gizle, **F2** kayıt. (**G** bakış noktası yalnızca Unity'nin Eye Gaze feature'ı açıkken çalışır; şu an kapalı.)
